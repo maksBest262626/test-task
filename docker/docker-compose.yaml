@@ -1,0 +1,122 @@
+version: '3.7'
+
+services:
+  nginx:
+    build:
+      context: nginx
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+        PHP_HOST: ${PROJECT_NAME}_php
+    container_name: ${PROJECT_NAME}_nginx
+    ports:
+      - "${NGINX_HOST_HTTP_PORT}:80"
+    volumes:
+      - ../:/var/www
+      - "./nginx/etc-nginx/lua:/etc/nginx/lua"
+      - "./nginx/etc-nginx/conf.dist:/etc/nginx/conf.dist"
+      - ../logs/nginx:/var/log/nginx
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME}
+      PHP_HOST: ${PROJECT_NAME}_php
+      REDIS_HOST: ${PROJECT_NAME}_redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB}
+      REDIS_CACHE_PREFIX: ${REDIS_CACHE_PREFIX:-dev}
+    depends_on:
+      - php
+      - redis
+    networks:
+      app-network:
+        aliases:
+          - app.dev
+
+  php:
+    container_name: ${PROJECT_NAME}_php
+    build:
+      context: ./php
+      args:
+        USER_ID: ${USER_ID}
+        GROUP_ID: ${GROUP_ID}
+    links:
+      - db
+    depends_on:
+      - db
+    environment:
+      APP_ENV: dev
+      DOTENV_OVERLOAD: true
+#      COMPOSER_AUTH: '{"github-oauth":{"github.com":"${GITHUB_TOKEN}"}}'
+      XDEBUG_SESSION: PHPSTORM
+      XDEBUG_MODE: debug
+    volumes:
+      - ../:/var/www
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/etc/localtime:/etc/localtime:ro"
+      - ./php/php.ini:/usr/local/etc/php/php.ini
+      - ./php/xdebug.ini:/usr/local/etc/php/conf.d/xdebug.ini
+      - ../logs/php:/var/log/php
+    extra_hosts:
+      - host.docker.internal:${LOCALHOST_IP_ADDRESS}
+    networks:
+      app-network:
+
+  db:
+    image: postgres:15.2
+    container_name: ${PROJECT_NAME}_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${POSTGRES_TIMEZONE}
+      PGTZ: ${POSTGRES_TIMEZONE}
+    ports:
+      - ${POSTGRES_EXTERNAL_PORT}:5432
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ", $POSTGRES_USER, " -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      app-network:
+
+  dbAdminer:
+    image: adminer
+    container_name: ${PROJECT_NAME}_db_adminer
+    restart: always
+    links:
+      - db
+    depends_on:
+      - db
+    environment:
+      ADMINER_USERNAME: ${POSTGRES_USER}
+      ADMINER_PASSWORD: ${POSTGRES_PASSWORD}
+      ADMINER_SERVER: db
+      ADMINER_DRIVER: pgsql
+
+      ADMINER_DESIGN: nette
+      ADMINER_PLUGINS: tables-filter tinymce dump-json dump-date edit-calendar json-column
+    ports:
+      - ${DB_GUI_PORT}:8080
+    networks:
+      app-network:
+
+  redis:
+    container_name: ${PROJECT_NAME}_redis
+    restart: always
+    volumes:
+      - ./redis/data/:/data/
+      - ./redis/etc/redis.conf:/usr/local/etc/redis/redis.conf
+    build:
+      context: redis
+    networks:
+      app-network:
+
+networks:
+  app-network:
+    driver: bridge
