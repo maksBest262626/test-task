@@ -64,7 +64,7 @@ pre-install:
 	mkdir -p $(addprefix './logs/', 'db' 'nginx' 'php')
 	mkdir -p $(addprefix './logs/php/', 'xdebug' 'xhprof' 'xtrace')
 	find ./logs -type d -exec chmod g+s {} \;
-post-install: composer-install composer-dump-env-dev migrate-up
+post-install: composer-install composer-dump-env-dev migrate-up generate-jwt-keys
 docker-dump-env-dev: ## Docker env for dev environment
 	rm -f ./docker/.env
 	cp "./docker/.env.dev" "./docker/.env"
@@ -216,3 +216,6 @@ refactor-cc:  ## Code refactoring without cache, run it if you break previous st
 
 refactor-dry:  ## Code refactoring, with dry-run option
 	@make refactor o='--dry-run'
+
+generate-jwt-keys: ## For jwt auth
+	${DOCKER_EXEC_APP_PHP} "${SYMFONY_CONSOLE} lexik:jwt:generate-keypair --skip-if-exists"

@@ -1,0 +1,28 @@
+### register
+POST {{HOST_VALUE}}/api/register
+Content-Type: application/json
+
+{
+  "first_name": "Maks",
+  "last_name": "MaksOn",
+  "email": "maks.best.262626@gmail.com",
+  "password": "testPass"
+}
+
+### login
+POST {{HOST_VALUE}}/api/login_check
+Content-Type: application/json
+
+{
+  "username": "maks.best.262626@gmail.com",
+  "password": "testPass"
+}
+
+### check valid jwt
+POST {{HOST_VALUE}}/api/ping
+Content-Type: application/json
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE3MTI1MDM1OTUsImV4cCI6MTcxMjUzOTU5NSwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoibWFrcy5iZXN0LjI2MjYyNkBnbWFpbC5jb20ifQ.Sl_I4Fcda985c91DwP59KKf-WB6KIsEik0u4XkTc01i0-PhOkHaojDVeSA6MDLq9An6lnuoqr-AVo3Jd25bC8RkD_AZ3oF8y9XBl69BliDztVGjytrA9Bh6UVoXnK42IZOG1W4ODdBHSmeohpIrRRWNL3cPwvtWZOkMZpBR1YAMp86gLTyOMbqQerOgYtXzi-UO258N_qWoahQUAOPYFWAXASsJLxRsK19_lhP9ZdLLxGo3ihevZLCAE1TZ7Gpc37JVqUJvjaus4PEKIxMJ3Pd2yl7e55T8ZKpxE9yjzE9sf5HRgjllvRaHzJe-rMWkMQqmRAT9E-YAirpsfNqI3fQ
+
+{
+  "hello": "world"
+}

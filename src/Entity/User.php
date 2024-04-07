@@ -10,15 +10,14 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: 'users')]
 #[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
-class User extends BaseEntity implements UserInterface
+class User extends BaseEntity implements UserInterface, PasswordAuthenticatedUserInterface
 {
     private const PATTERN_USER_ID = 'U%d';
-
-    private const PATTERN_WAREHOUSE_USER_ID = 'DA%d';
 
     #[ORM\Column(length: 180, unique: true, nullable: false)]
     private string $email;
@@ -40,6 +39,10 @@ class User extends BaseEntity implements UserInterface
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: Application::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
     private Collection $applications;
+
+    /** @var string The hashed password */
+    #[ORM\Column(nullable: false)]
+    private string $password;
 
     public function __construct()
     {
@@ -67,11 +70,6 @@ class User extends BaseEntity implements UserInterface
     public function getWrappedId(): string
     {
         return sprintf(self::PATTERN_USER_ID, $this->getId());
-    }
-
-    public function getWrappedUserIdForWarehouse(): string
-    {
-        return sprintf(self::PATTERN_WAREHOUSE_USER_ID, $this->getId());
     }
 
     /** @see UserInterface */
@@ -152,7 +150,7 @@ class User extends BaseEntity implements UserInterface
     {
         if (!$this->applications->contains($application)) {
             $this->applications->add($application);
-            $application->setUserId($this);
+            $application->setUser($this);
         }
 
         return $this;
@@ -160,12 +158,19 @@ class User extends BaseEntity implements UserInterface
 
     public function removeApplication(Application $application): static
     {
-        if ($this->applications->removeElement($application)) {
-            // set the owning side to null (unless already changed)
-            if ($application->getUserId() === $this) {
-                $application->setUserId(null);
-            }
-        }
+        $this->applications->removeElement($application);
+
+        return $this;
+    }
+
+    public function getPassword(): string
+    {
+        return $this->password;
+    }
+
+    public function setPassword(string $password): self
+    {
+        $this->password = $password;
 
         return $this;
     }
